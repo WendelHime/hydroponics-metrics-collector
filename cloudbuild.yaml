@@ -1,0 +1,5 @@
+steps:
+- name: 'gcr.io/cloud-builders/docker'
+  args: [ 'build', '-t', 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:$TAG_NAME', '.' ]
+images:
+- 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:$TAG_NAME'
