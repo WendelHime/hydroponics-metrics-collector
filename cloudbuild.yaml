@@ -8,4 +8,4 @@ substitutions:
   _GENERATED_APPLICATION_VERSION: ${TAG_NAME:-${SHORT_SHA}}
   # We'll generate an image being tagged either with TAG_NAME
   # if that's present or with SHORT_SHA if no tag is found.
-  _IMAGE_NAME: '$LOCATION-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:${_GENERATED_APPLICATION_VERSION}'
+  _IMAGE_NAME: '${LOCATION}-docker.pkg.dev/${PROJECT_ID}/hydroponics-repository/hydroponics-metrics-collector:${_GENERATED_APPLICATION_VERSION}'
