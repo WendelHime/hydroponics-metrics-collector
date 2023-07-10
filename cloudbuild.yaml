@@ -1,5 +1,11 @@
 steps:
+substitutions:
+  # We'll generate the application version being using TAG_NAME or SHORT_SHA
+  _GENERATED_APPLICATION_VERSION: ${TAG_NAME:-${SHORT_SHA}}
+  # We'll generate an image being tagged either with TAG_NAME
+  # if that's present or with SHORT_SHA if no tag is found.
+  _IMAGE_NAME: 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:${_GENERATED_APPLICATION_VERSION}'
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:$SHORT_SHA', '.' ]
+  args: [ 'build', '-t', '$_IMAGE_NAME', '.' ]
 images:
-- 'southamerica-east1-docker.pkg.dev/$PROJECT_ID/hydroponics-repository/hydroponics-metrics-collector:$SHORT_SHA'
+- '$_IMAGE_NAME'
