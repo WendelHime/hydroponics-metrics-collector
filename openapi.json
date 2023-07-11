@@ -1,0 +1,78 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "hydroponics-project",
+    "description": "API Gateway for hydroponics project",
+    "version": "0.0.1"
+  },
+  "servers": [
+    {
+      "url": "/"
+    }
+  ],
+  "paths": {
+    "/metrics": {
+      "post": {
+        "summary": "Write sensor metrics",
+        "operationId": "write-sensor-metrics",
+        "requestBody": {
+          "description": "Sensor collected metrics",
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SensorMetrics"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {}
+          }
+        },
+        "x-google-backend": {
+          "address": ""
+        },
+        "x-codegen-request-body-name": "sensor metrics"
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "SensorMetrics": {
+        "type": "object",
+        "properties": {
+          "sensor_id": {
+            "type": "string"
+          },
+          "sensor_version": {
+            "type": "string"
+          },
+          "alias": {
+            "type": "string"
+          },
+          "temperature": {
+            "type": "number"
+          },
+          "humidity": {
+            "type": "number"
+          },
+          "ph": {
+            "type": "number"
+          },
+          "tds": {
+            "type": "number"
+          },
+          "ec": {
+            "type": "number"
+          },
+          "timestamp": {
+            "type": "number"
+          }
+        }
+      }
+    }
+  }
+}
