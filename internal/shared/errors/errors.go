@@ -1,13 +1,18 @@
 package errors
 
-import "fmt"
+import (
+	"fmt"
+	"net/http"
+
+	"github.com/go-chi/render"
+)
 
 type Error struct {
-	StatusCode        int
-	StatusDescription string
-	Msg               string
-	Details           map[string]any
-	Err               error
+	StatusCode        int            `json:"status"`
+	StatusDescription string         `json:"description"`
+	Msg               string         `json:"-"`
+	Details           map[string]any `json:"-"`
+	Err               error          `json:"-"`
 }
 
 func newError(statusCode int, statusDescription string) *Error {
@@ -31,6 +36,11 @@ func (e *Error) WithErr(err error) *Error {
 
 func (e *Error) Error() string {
 	return fmt.Sprintf("%s: %s, %+v", e.StatusDescription, e.Msg, e.Details)
+}
+
+func (e *Error) Render(w http.ResponseWriter, r *http.Request) error {
+	render.Status(r, e.StatusCode)
+	return nil
 }
 
 // InternalServerErr used for random/unexpected internal errors
