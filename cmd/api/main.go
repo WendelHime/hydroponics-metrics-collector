@@ -20,6 +20,12 @@ func main() {
 	database := os.Getenv("DATABASE")
 	hostURL := os.Getenv("INFLUXDB_HOST")
 	authToken := os.Getenv("INFLUXDB_TOKEN")
+	auth0Domain := os.Getenv("AUTH0_DOMAIN")
+	auth0ClientID := os.Getenv("AUTH0_CLIENTID")
+	auth0ClientSecret := os.Getenv("AUTH0_CLIENT_SECRET")
+	authAudience := os.Getenv("AUTH_AUDIENCE")
+	env := os.Getenv("ENV")
+	roleID := os.Getenv("USER_ROLE_ID")
 
 	logger := httplog.NewLogger("hydroponics-metrics-collector", httplog.Options{
 		LogLevel:        "info",
@@ -29,15 +35,23 @@ func main() {
 		TimeFieldName:   "timestamp",
 	})
 
-	repository := storage.NewRepository(database, influx.Configs{
+	metricsRepository := storage.NewRepository(database, influx.Configs{
 		HostURL:   hostURL,
 		AuthToken: authToken,
 	})
 
 	logger.Debug().Str("database", database).Str("hostURL", hostURL).Str("authToken", authToken).Msg("Creating repository with the environment variables")
-	l := logic.NewLogic(repository)
-	endpoints := api.NewMetricsEndpoints(l)
-	r := api.NewRouter(logger, endpoints)
+	metricsLogic := logic.NewLogic(metricsRepository)
+	metricsEndpoints := api.NewMetricsEndpoints(metricsLogic)
+
+	userRepository, err := storage.NewUserRepository(context.Background(), auth0Domain, auth0ClientID, auth0ClientSecret, env, authAudience)
+	if err != nil {
+		panic(err)
+	}
+
+	userLogic := logic.NewUserLogic(userRepository, roleID)
+	userEndpoints := api.NewUserEndpoint(userLogic)
+	r := api.NewRouter(logger, metricsEndpoints, userEndpoints)
 
 	server := &http.Server{Addr: "0.0.0.0:8080", Handler: r}
 
@@ -65,7 +79,7 @@ func main() {
 		}()
 
 		// Trigger graceful shutdown
-		err := server.Shutdown(shutdownCtx)
+		err = server.Shutdown(shutdownCtx)
 		if err != nil {
 			logger.Fatal().Err(err)
 		}
@@ -73,7 +87,7 @@ func main() {
 	}()
 
 	// Run the server
-	err := server.ListenAndServe()
+	err = server.ListenAndServe()
 	if err != nil && err != http.ErrServerClosed {
 		logger.Fatal().Err(err)
 	}
