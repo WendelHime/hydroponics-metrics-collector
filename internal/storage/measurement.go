@@ -10,8 +10,8 @@ import (
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 )
 
-// Repository implement functions for persisting data
-type Repository interface {
+// MetricRepository implement functions for persisting data
+type MetricRepository interface {
 	WriteMeasurement(ctx context.Context, request models.SensorRequest) error
 }
 
@@ -33,7 +33,7 @@ type repository struct {
 	config   influx.Configs
 }
 
-func NewRepository(database string, config influx.Configs) Repository {
+func NewRepository(database string, config influx.Configs) MetricRepository {
 	return &repository{database: database, config: config}
 }
 

@@ -12,19 +12,19 @@ import (
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 )
 
-type Logic interface {
+type MetricLogic interface {
 	WriteSensorMetrics(ctx context.Context, m models.SensorRequest) error
 }
 
-type logic struct {
-	repository storage.Repository
+type metricLogic struct {
+	repository storage.MetricRepository
 }
 
-func NewLogic(repository storage.Repository) Logic {
-	return &logic{repository: repository}
+func NewLogic(repository storage.MetricRepository) MetricLogic {
+	return &metricLogic{repository: repository}
 }
 
-func (l logic) WriteSensorMetrics(ctx context.Context, m models.SensorRequest) error {
+func (l *metricLogic) WriteSensorMetrics(ctx context.Context, m models.SensorRequest) error {
 	validate := validator.New()
 	err := validate.Struct(m)
 	if err != nil {

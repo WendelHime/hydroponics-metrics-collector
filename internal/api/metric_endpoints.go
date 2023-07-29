@@ -11,10 +11,10 @@ import (
 )
 
 type MetricsEndpoints struct {
-	logic logic.Logic
+	logic logic.MetricLogic
 }
 
-func NewMetricsEndpoints(logic logic.Logic) MetricsEndpoints {
+func NewMetricsEndpoints(logic logic.MetricLogic) MetricsEndpoints {
 	return MetricsEndpoints{logic: logic}
 }
 
