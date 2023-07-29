@@ -2,8 +2,8 @@ package logic
 
 import (
 	"context"
-	"errors"
 
+	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 	"github.com/go-playground/validator/v10"
@@ -68,8 +68,7 @@ func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (
 	}
 
 	if !user.EmailVerified {
-		// return error if user not verified
-		return "", errors.New("user not verified")
+		return "", localErrs.ForbiddenErr
 	}
 
 	permissions, err := l.repository.GetRolePermissions(ctx, user.Role)
@@ -79,7 +78,7 @@ func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (
 
 	credentials.Scope = permissions
 
-	token, err := l.repository.Login(ctx, credentials)
+	token, err := l.repository.SignIn(ctx, credentials)
 	if err != nil {
 		return "", err
 	}
