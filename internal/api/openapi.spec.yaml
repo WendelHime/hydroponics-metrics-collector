@@ -1,0 +1,63 @@
+info:
+  title: metrics-collector
+  description: API Gateway for hydroponics project
+  version: 0.0.1
+schemes:
+  - https
+produces:
+- application/json
+x-google-backend:
+  address: 'https://metrics-collector-koevdxgkaq-ue.a.run.app'
+paths:
+  /metrics:
+    post:
+      summary: Write sensor metrics
+      operationId: write-sensor-metrics
+      responses:
+        '200':
+          description: OK
+      security:
+        - api_key: [] 
+      x-codegen-request-body-name: sensor metrics
+      parameters:
+        - description: Sensor collected metrics
+          required: true
+          name: body
+          in: body
+          schema:
+            $ref: '#/definitions/SensorMetrics'
+      consumes:
+        - application/json
+swagger: '2.0'
+basePath: /
+definitions:
+  SensorMetrics:
+    type: object
+    properties:
+      sensor_id:
+        type: string
+      sensor_version:
+        type: string
+      alias:
+        type: string
+      temperature:
+        type: number
+      humidity:
+        type: number
+      ph:
+        type: number
+      tds:
+        type: number
+      ec:
+        type: number
+      water_temperature:
+        type: number
+      timestamp:
+        type: number
+security:
+- api_key: []
+securityDefinitions:
+    api_key:
+        type: apiKey
+        name: x-api-key
+        in: header
