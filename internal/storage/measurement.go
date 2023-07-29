@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/InfluxCommunity/influxdb3-go/influx"
-	"github.com/rs/zerolog/log"
 
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 )
 
@@ -64,16 +64,14 @@ func parseRequestsToMeasurements(requests ...models.SensorRequest) []SensorMeasu
 func (r repository) WriteMeasurement(ctx context.Context, request models.SensorRequest) error {
 	cli, err := influx.New(r.config)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create influx client")
-		return err
+		return errors.InternalServerErr.WithMsg("failed to create influx client").WithErr(err)
 	}
 	defer cli.Close()
 
 	measurements := parseRequestToMeasurement(request)
 	err = cli.WriteData(ctx, r.database, measurements)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to write data")
-		return err
+		return errors.InternalServerErr.WithMsg("failed to write data").WithErr(err)
 	}
 
 	return nil
