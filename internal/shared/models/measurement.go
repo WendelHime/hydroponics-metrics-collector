@@ -1,6 +1,7 @@
 package models
 
 import (
+	"math"
 	"net/http"
 	"time"
 
@@ -29,5 +30,15 @@ func (s *SensorRequest) Bind(r *http.Request) error {
 	if err != nil {
 		return localErrs.BadRequestErr.WithErr(err).WithMsg("failed to validate request")
 	}
+
+	// parse timestamp
+	sec, dec := math.Modf(s.Timestamp)
+	s.Time = time.Unix(int64(sec), int64(dec*1e9))
+
+	// we only store dates from the last 30 days
+	if s.Time.Before(time.Now().AddDate(0, 0, -30)) {
+		return localErrs.BadRequestErr.WithMsg("timestamp before 30 days is not acceptable")
+	}
+
 	return nil
 }
