@@ -13,6 +13,7 @@ import (
 	"github.com/InfluxCommunity/influxdb3-go/influx"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/api"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 )
 
@@ -35,11 +36,15 @@ func main() {
 		TimeFieldName:   "timestamp",
 	})
 
-	metricsRepository := storage.NewRepository(database, influx.Configs{
+	influxCli, err := influx.New(influx.Configs{
 		HostURL:   hostURL,
 		AuthToken: authToken,
 	})
+	if err != nil {
+		panic(errors.InternalServerErr.WithMsg("failed to create influx client").WithErr(err).Error())
+	}
 
+	metricsRepository := storage.NewRepository(database, influxCli)
 	logger.Debug().Str("database", database).Str("hostURL", hostURL).Str("authToken", authToken).Msg("Creating repository with the environment variables")
 	metricsLogic := logic.NewLogic(metricsRepository)
 	metricsEndpoints := api.NewMetricsEndpoints(metricsLogic)
@@ -72,6 +77,7 @@ func main() {
 		defer cancel()
 
 		go func() {
+			influxCli.Close()
 			<-shutdownCtx.Done()
 			if shutdownCtx.Err() == context.DeadlineExceeded {
 				logger.Fatal().Msg("graceful shutdown timed out.. forcing exit.")

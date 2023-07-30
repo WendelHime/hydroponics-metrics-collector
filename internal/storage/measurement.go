@@ -4,8 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/InfluxCommunity/influxdb3-go/influx"
-
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 )
@@ -31,11 +29,18 @@ type SensorMeasurement struct {
 
 type repository struct {
 	database string
-	config   influx.Configs
+	cli      InfluxClient
 }
 
-func NewRepository(database string, config influx.Configs) MetricRepository {
-	return &repository{database: database, config: config}
+// InfluxClient represents functions from influxdb client used by the storage layer
+//
+//go:generate mockgen -destination measurement_mock.go -package storage github.com/WendelHime/hydroponics-metrics-collector/internal/storage InfluxClient
+type InfluxClient interface {
+	WriteData(ctx context.Context, database string, points ...any) error
+}
+
+func NewRepository(database string, client InfluxClient) MetricRepository {
+	return &repository{database: database, cli: client}
 }
 
 func parseRequestToMeasurement(r models.SensorRequest) SensorMeasurement {
@@ -64,14 +69,8 @@ func parseRequestsToMeasurements(requests ...models.SensorRequest) []any {
 }
 
 func (r repository) WriteMeasurement(ctx context.Context, request ...models.SensorRequest) error {
-	cli, err := influx.New(r.config)
-	if err != nil {
-		return errors.InternalServerErr.WithMsg("failed to create influx client").WithErr(err)
-	}
-	defer cli.Close()
-
 	measurements := parseRequestsToMeasurements(request...)
-	err = cli.WriteData(ctx, r.database, measurements...)
+	err := r.cli.WriteData(ctx, r.database, measurements...)
 	if err != nil {
 		return errors.InternalServerErr.WithMsg("failed to write data").WithErr(err)
 	}
