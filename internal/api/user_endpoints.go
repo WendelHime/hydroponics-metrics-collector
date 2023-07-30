@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"net/http"
 	"strings"
 
@@ -23,40 +22,41 @@ func NewUserEndpoint(l logic.UserLogic) UserEndpoints {
 func (e UserEndpoints) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	var account models.User
 
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&account)
+	err := render.Bind(r, &account)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to decode account")
-		render.Status(r, http.StatusBadRequest)
+		renderErr(w, r, err)
 		return
 	}
 
 	err = e.logic.CreateAccount(r.Context(), account)
 	if err != nil {
-		// TODO add error package and validate returned errors
-		log.Error().Err(err).Msg("failed to create account")
-		render.Status(r, http.StatusInternalServerError)
+		renderErr(w, r, err)
 		return
 	}
 
-	render.Status(r, 200)
+	render.Status(r, http.StatusCreated)
 }
 
 type LoginResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-func (e UserEndpoints) Login(w http.ResponseWriter, r *http.Request) {
+func (l LoginResponse) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
+
+func (e UserEndpoints) SignIn(w http.ResponseWriter, r *http.Request) {
 	authorization := r.Header.Get("X-Apigateway-Api-Userinfo")
 	if len(authorization) == 0 {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		render.Status(r, http.StatusBadRequest)
 		return
 	}
 
 	payload := strings.Replace(authorization, "Basic ", "", 1)
 	payloadDecoded, err := base64.StdEncoding.DecodeString(payload)
 	if err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		render.Status(r, http.StatusBadRequest)
 		return
 	}
 	userPass := strings.Split(string(payloadDecoded), ":")
@@ -64,16 +64,11 @@ func (e UserEndpoints) Login(w http.ResponseWriter, r *http.Request) {
 	credentials := models.Credentials{Email: userPass[0], Password: userPass[1]}
 	accessToken, err := e.logic.Login(r.Context(), credentials)
 	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		renderErr(w, r, err)
 		return
 	}
 
 	response := LoginResponse{AccessToken: accessToken}
-	encoder := json.NewEncoder(w)
-	err = encoder.Encode(response)
-	if err != nil {
-		http.Error(w, "internal server error", http.StatusInternalServerError)
-		return
-	}
-	render.Status(r, 200)
+	render.Render(w, r, response)
+	render.Status(r, http.StatusOK)
 }

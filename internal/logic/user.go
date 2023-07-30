@@ -16,7 +16,6 @@ type UserLogic interface {
 }
 
 func NewUserLogic(repository storage.UserRepository, roleID string) UserLogic {
-	// roleID := "rol_wVYCnzv9toZu1ISL"
 	return &userLogic{
 		repository: repository,
 		roleID:     roleID,

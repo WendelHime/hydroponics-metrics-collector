@@ -1,9 +1,9 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
 
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
@@ -20,21 +20,19 @@ func NewMetricsEndpoints(logic logic.MetricLogic) MetricsEndpoints {
 
 func (e MetricsEndpoints) RegisterMetric(w http.ResponseWriter, r *http.Request) {
 	var sensorRequest models.SensorRequest
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&sensorRequest)
+	err := render.Bind(r, &sensorRequest)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to decode sensor request")
-		http.Error(w, "failed to decode request", http.StatusBadRequest)
+		renderErr(w, r, err)
 		return
 	}
 
 	err = e.logic.WriteSensorMetrics(r.Context(), sensorRequest)
 	if err != nil {
-		// TODO add error package and validate returned errors
 		log.Error().Err(err).Msg("failed to write sensor metrics")
-		http.Error(w, "internal server error", http.StatusInternalServerError)
+		renderErr(w, r, err)
 		return
 	}
 
-	w.WriteHeader(200)
+	render.Status(r, http.StatusCreated)
 }

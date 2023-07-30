@@ -14,7 +14,7 @@ func NewRouter(logger zerolog.Logger, metricsEndpoints MetricsEndpoints, userEnd
 
 	mux.Post("/metrics", metricsEndpoints.RegisterMetric)
 	mux.Post("/users", userEndpoints.CreateAccount)
-	mux.Post("/login", userEndpoints.Login)
+	mux.Post("/signin", userEndpoints.SignIn)
 
 	return mux
 }
