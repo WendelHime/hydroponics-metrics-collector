@@ -12,20 +12,21 @@ import (
 
 // MetricRepository implement functions for persisting data
 type MetricRepository interface {
-	WriteMeasurement(ctx context.Context, request models.SensorRequest) error
+	WriteMeasurement(ctx context.Context, request ...models.SensorRequest) error
 }
 
 type SensorMeasurement struct {
-	Table         string    `lp:"measurement"`
-	SensorID      string    `lp:"tag,sensor_id"`
-	SensorVersion string    `lp:"tag,sensor_version"`
-	Alias         string    `lp:"tag,alias"`
-	Temperature   float64   `lp:"field,temperature"`
-	Humidity      float64   `lp:"field,humidity"`
-	PH            float64   `lp:"field,ph"`
-	TDS           float64   `lp:"field,tds"`
-	EC            float64   `lp:"field,ec"`
-	Timestamp     time.Time `lp:"timestamp"`
+	Table            string    `lp:"measurement"`
+	SensorID         string    `lp:"tag,sensor_id"`
+	SensorVersion    string    `lp:"tag,sensor_version"`
+	Alias            string    `lp:"tag,alias"`
+	Temperature      float64   `lp:"field,temperature"`
+	Humidity         float64   `lp:"field,humidity"`
+	PH               float64   `lp:"field,ph"`
+	TDS              float64   `lp:"field,tds"`
+	EC               float64   `lp:"field,ec"`
+	WaterTemperature float64   `lp:"field,water_temperature"`
+	Timestamp        time.Time `lp:"timestamp"`
 }
 
 type repository struct {
@@ -39,37 +40,38 @@ func NewRepository(database string, config influx.Configs) MetricRepository {
 
 func parseRequestToMeasurement(r models.SensorRequest) SensorMeasurement {
 	measurement := SensorMeasurement{
-		Table:         "metrics",
-		SensorID:      r.SensorID,
-		SensorVersion: r.SensorVersion,
-		Alias:         r.Alias,
-		Temperature:   r.Temperature,
-		Humidity:      r.Humidity,
-		PH:            r.PH,
-		TDS:           r.TDS,
-		EC:            r.EC,
-		Timestamp:     r.Time,
+		Table:            "metrics",
+		SensorID:         r.SensorID,
+		SensorVersion:    r.SensorVersion,
+		Alias:            r.Alias,
+		Temperature:      r.Temperature,
+		Humidity:         r.Humidity,
+		PH:               r.PH,
+		TDS:              r.TDS,
+		EC:               r.EC,
+		WaterTemperature: r.WaterTemperature,
+		Timestamp:        r.Time,
 	}
 	return measurement
 }
 
-func parseRequestsToMeasurements(requests ...models.SensorRequest) []SensorMeasurement {
-	measurements := make([]SensorMeasurement, len(requests))
+func parseRequestsToMeasurements(requests ...models.SensorRequest) []any {
+	measurements := make([]any, len(requests))
 	for i, r := range requests {
 		measurements[i] = parseRequestToMeasurement(r)
 	}
 	return measurements
 }
 
-func (r repository) WriteMeasurement(ctx context.Context, request models.SensorRequest) error {
+func (r repository) WriteMeasurement(ctx context.Context, request ...models.SensorRequest) error {
 	cli, err := influx.New(r.config)
 	if err != nil {
 		return errors.InternalServerErr.WithMsg("failed to create influx client").WithErr(err)
 	}
 	defer cli.Close()
 
-	measurements := parseRequestToMeasurement(request)
-	err = cli.WriteData(ctx, r.database, measurements)
+	measurements := parseRequestsToMeasurements(request...)
+	err = cli.WriteData(ctx, r.database, measurements...)
 	if err != nil {
 		return errors.InternalServerErr.WithMsg("failed to write data").WithErr(err)
 	}
