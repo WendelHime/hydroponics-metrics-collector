@@ -13,6 +13,7 @@ type MetricRepository interface {
 	WriteMeasurement(ctx context.Context, request ...models.SensorRequest) error
 }
 
+// SensorMeasurement represents the database data structure
 type SensorMeasurement struct {
 	Table            string    `lp:"measurement"`
 	SensorID         string    `lp:"tag,sensor_id"`

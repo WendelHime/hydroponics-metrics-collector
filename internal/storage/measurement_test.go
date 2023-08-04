@@ -14,19 +14,21 @@ import (
 
 func TestWriteMeasurement(t *testing.T) {
 	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	now := time.Now()
 	var tests = []struct {
-		name            string
-		assert          func(t *testing.T, err error)
-		givenRepository func() MetricRepository
-		givenRequests   []models.SensorRequest
+		name             string
+		assert           func(t *testing.T, err error)
+		metricRepository func() MetricRepository
+		givenRequests    []models.SensorRequest
 	}{
 		{
 			name: "Creating multiple metrics with success",
 			assert: func(t *testing.T, err error) {
 				assert.Nil(t, err)
 			},
-			givenRepository: func() MetricRepository {
+			metricRepository: func() MetricRepository {
 				db := "hydroponics"
 				mock := NewMockInfluxClient(ctrl)
 				mock.EXPECT().WriteData(gomock.Any(), db, []any{
@@ -96,7 +98,7 @@ func TestWriteMeasurement(t *testing.T) {
 				}
 				assert.Fail(t, "expected internal server error")
 			},
-			givenRepository: func() MetricRepository {
+			metricRepository: func() MetricRepository {
 				db := "hydroponics"
 				mock := NewMockInfluxClient(ctrl)
 				mock.EXPECT().WriteData(gomock.Any(), db, gomock.Any()).Return(errors.New("random error"))
@@ -133,7 +135,7 @@ func TestWriteMeasurement(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.givenRepository().WriteMeasurement(context.Background(), tt.givenRequests...)
+			err := tt.metricRepository().WriteMeasurement(context.Background(), tt.givenRequests...)
 			tt.assert(t, err)
 		})
 	}
