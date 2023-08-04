@@ -8,11 +8,14 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/auth0/go-auth0/authentication"
+	"github.com/auth0/go-auth0/management"
 	"github.com/go-chi/httplog"
 
 	"github.com/InfluxCommunity/influxdb3-go/influx"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/api"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/services"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 )
@@ -49,12 +52,25 @@ func main() {
 	metricsLogic := logic.NewLogic(metricsRepository)
 	metricsEndpoints := api.NewMetricsEndpoints(metricsLogic)
 
-	userRepository, err := storage.NewUserRepository(context.Background(), auth0Domain, auth0ClientID, auth0ClientSecret, env, authAudience)
+	ctx := context.Background()
+	authCli, err := authentication.New(
+		ctx,
+		auth0Domain,
+		authentication.WithClientID(auth0ClientID),
+		authentication.WithClientSecret(auth0ClientSecret))
 	if err != nil {
-		panic(err)
+		panic(errors.InternalServerErr.WithMsg("failed to create auth0 authentication client").WithDetails("err", err.Error()).Error())
 	}
 
-	userLogic := logic.NewUserLogic(userRepository, roleID)
+	managementCli, err := management.New(auth0Domain, management.WithClientCredentials(ctx, auth0ClientID, auth0ClientSecret))
+	if err != nil {
+		panic(errors.InternalServerErr.WithMsg("failed to create auth0 management client").WithDetails("err", err.Error()).Error())
+	}
+
+	authService := services.NewAuthService(authCli.OAuth, env, authAudience)
+	userService := services.NewUserService(managementCli.User, managementCli.Role)
+
+	userLogic := logic.NewUserLogic(userService, authService, roleID)
 	userEndpoints := api.NewUserEndpoint(userLogic)
 	r := api.NewRouter(logger, metricsEndpoints, userEndpoints)
 

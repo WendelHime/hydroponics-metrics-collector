@@ -3,9 +3,9 @@ package logic
 import (
 	"context"
 
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/services"
 	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
-	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 	"github.com/go-playground/validator/v10"
 	"github.com/rs/zerolog/log"
 )
@@ -15,16 +15,18 @@ type UserLogic interface {
 	Login(ctx context.Context, credentials models.Credentials) (string, error)
 }
 
-func NewUserLogic(repository storage.UserRepository, roleID string) UserLogic {
+func NewUserLogic(userService services.UserService, authService services.Authenticator, roleID string) UserLogic {
 	return &userLogic{
-		repository: repository,
-		roleID:     roleID,
+		userService: userService,
+		authService: authService,
+		roleID:      roleID,
 	}
 }
 
 type userLogic struct {
-	repository storage.UserRepository
-	roleID     string
+	userService services.UserService
+	authService services.Authenticator
+	roleID      string
 }
 
 func (l *userLogic) CreateAccount(ctx context.Context, account models.User) error {
@@ -35,17 +37,17 @@ func (l *userLogic) CreateAccount(ctx context.Context, account models.User) erro
 		return err
 	}
 
-	err = l.repository.CreateAccount(ctx, account)
+	err = l.userService.CreateAccount(ctx, account)
 	if err != nil {
 		return err
 	}
 
-	user, err := l.repository.GetUser(ctx, account.Email)
+	user, err := l.userService.GetUser(ctx, account.Email)
 	if err != nil {
 		return err
 	}
 
-	err = l.repository.AssignRoleToUser(ctx, l.roleID, user.ID)
+	err = l.userService.AssignRoleToUser(ctx, l.roleID, user.ID)
 	if err != nil {
 		return err
 	}
@@ -61,7 +63,7 @@ func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (
 		return "", err
 	}
 
-	user, err := l.repository.GetUser(ctx, credentials.Email)
+	user, err := l.userService.GetUser(ctx, credentials.Email)
 	if err != nil {
 		return "", err
 	}
@@ -70,14 +72,14 @@ func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (
 		return "", localErrs.ForbiddenErr
 	}
 
-	permissions, err := l.repository.GetRolePermissions(ctx, user.Role)
+	permissions, err := l.userService.GetRolePermissions(ctx, user.Role)
 	if err != nil {
 		return "", err
 	}
 
 	credentials.Scope = permissions
 
-	token, err := l.repository.SignIn(ctx, credentials)
+	token, err := l.authService.SignIn(ctx, credentials)
 	if err != nil {
 		return "", err
 	}
