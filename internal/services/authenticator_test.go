@@ -12,17 +12,17 @@ import (
 	gomock "go.uber.org/mock/gomock"
 )
 
-type oauthError struct {
+type auth0Error struct {
 	StatusCode int    `json:"statusCode"`
 	Err        string `json:"error"`
 	Message    string `json:"message"`
 }
 
-func (o oauthError) Status() int {
+func (o auth0Error) Status() int {
 	return o.StatusCode
 }
 
-func (oauthError) Error() string {
+func (auth0Error) Error() string {
 	return ""
 }
 
@@ -36,13 +36,13 @@ func TestSignIn(t *testing.T) {
 	}
 	emptyCredentials := models.Credentials{}
 
-	badRequestErr := oauthError{
+	badRequestErr := auth0Error{
 		StatusCode: 400,
 		Err:        "bad request",
 		Message:    "invalid credentials provided",
 	}
 
-	forbiddenRequestErr := oauthError{
+	forbiddenRequestErr := auth0Error{
 		StatusCode: 403,
 		Err:        "forbidden",
 		Message:    "forbidden",
@@ -50,15 +50,15 @@ func TestSignIn(t *testing.T) {
 
 	var tests = []struct {
 		name             string
-		assert           func(t *testing.T, accessToken string, err error)
+		assert           func(t *testing.T, token models.Token, err error)
 		authService      func() Authenticator
 		givenCredentials models.Credentials
 	}{
 		{
 			name: "creating user with success",
-			assert: func(t *testing.T, accessToken string, err error) {
+			assert: func(t *testing.T, token models.Token, err error) {
 				assert.Nil(t, err)
-				assert.NotEmpty(t, accessToken)
+				assert.NotEmpty(t, token.AccessToken)
 			},
 			authService: func() Authenticator {
 				oAuth := NewMockOAuth(ctrl)
@@ -82,8 +82,8 @@ func TestSignIn(t *testing.T) {
 		},
 		{
 			name: "should return bad request when email and password are empty or invalid",
-			assert: func(t *testing.T, accessToken string, err error) {
-				assert.Empty(t, accessToken)
+			assert: func(t *testing.T, token models.Token, err error) {
+				assert.Empty(t, token.AccessToken)
 				assert.NotNil(t, err)
 				assert.ErrorIs(t, err, localErrs.BadRequestErr)
 			},
@@ -109,8 +109,8 @@ func TestSignIn(t *testing.T) {
 		},
 		{
 			name: "should return forbidden request when email or password are wrong",
-			assert: func(t *testing.T, accessToken string, err error) {
-				assert.Empty(t, accessToken)
+			assert: func(t *testing.T, token models.Token, err error) {
+				assert.Empty(t, token.AccessToken)
 				assert.NotNil(t, err)
 				assert.ErrorIs(t, err, localErrs.ForbiddenErr)
 			},
@@ -136,8 +136,8 @@ func TestSignIn(t *testing.T) {
 		},
 		{
 			name: "should return internal server error when any random error happens",
-			assert: func(t *testing.T, accessToken string, err error) {
-				assert.Empty(t, accessToken)
+			assert: func(t *testing.T, token models.Token, err error) {
+				assert.Empty(t, token)
 				assert.NotNil(t, err)
 				assert.ErrorIs(t, err, localErrs.InternalServerErr)
 			},
@@ -165,8 +165,8 @@ func TestSignIn(t *testing.T) {
 	for _, tt := range tests {
 		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
-			accessToken, err := tt.authService().SignIn(context.Background(), tt.givenCredentials)
-			tt.assert(t, accessToken, err)
+			token, err := tt.authService().SignIn(context.Background(), tt.givenCredentials)
+			tt.assert(t, token, err)
 		})
 	}
 }

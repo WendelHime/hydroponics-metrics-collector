@@ -62,13 +62,13 @@ func (e UserEndpoints) SignIn(w http.ResponseWriter, r *http.Request) {
 	userPass := strings.Split(string(payloadDecoded), ":")
 
 	credentials := models.Credentials{Email: userPass[0], Password: userPass[1]}
-	accessToken, err := e.logic.Login(r.Context(), credentials)
+	token, err := e.logic.Login(r.Context(), credentials)
 	if err != nil {
 		renderErr(w, r, err)
 		return
 	}
 
-	response := LoginResponse{AccessToken: accessToken}
+	response := LoginResponse{AccessToken: token.AccessToken}
 	render.Render(w, r, response)
 	render.Status(r, http.StatusOK)
 }

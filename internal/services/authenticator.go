@@ -17,12 +17,13 @@ import (
 //
 //go:generate mockgen -destination authenticator_mock.go -package services github.com/WendelHime/hydroponics-metrics-collector/internal/services Authenticator,OAuth
 type Authenticator interface {
-	SignIn(ctx context.Context, credentials models.Credentials) (string, error)
+	SignIn(ctx context.Context, credentials models.Credentials) (models.Token, error)
 }
 
 // OAuth interafces oauth functionalities from auth0
 type OAuth interface {
 	LoginWithPassword(ctx context.Context, body oauth.LoginWithPasswordRequest, validationOptions oauth.IDTokenValidationOptions, opts ...authentication.RequestOption) (t *oauth.TokenSet, err error)
+	LoginWithAuthCodeWithPKCE(ctx context.Context, body oauth.LoginWithAuthCodeWithPKCERequest, validationOptions oauth.IDTokenValidationOptions, opts ...authentication.RequestOption) (t *oauth.TokenSet, err error)
 }
 
 type authService struct {
@@ -42,7 +43,7 @@ func NewAuthService(oauth OAuth, env, audience string) Authenticator {
 	}
 }
 
-func (u *authService) SignIn(ctx context.Context, credentials models.Credentials) (string, error) {
+func (u *authService) SignIn(ctx context.Context, credentials models.Credentials) (models.Token, error) {
 	token, err := u.oauth.LoginWithPassword(ctx, oauth.LoginWithPasswordRequest{
 		Username: credentials.Email,
 		Password: credentials.Password,
@@ -57,14 +58,19 @@ func (u *authService) SignIn(ctx context.Context, credentials models.Credentials
 		var mngmtErr management.Error
 		if errors.As(err, &mngmtErr) {
 			if mngmtErr.Status() == 400 {
-				return "", localErrs.BadRequestErr
+				return models.Token{}, localErrs.BadRequestErr
 			}
 			if mngmtErr.Status() == 403 {
-				return "", localErrs.ForbiddenErr
+				return models.Token{}, localErrs.ForbiddenErr
 			}
 		}
-		return "", localErrs.InternalServerErr.WithMsg("failed to login").WithDetails("err", err)
+		return models.Token{}, localErrs.InternalServerErr.WithMsg("failed to login").WithDetails("err", err)
 	}
 
-	return token.AccessToken, nil
+	return models.Token{
+		IDToken:      token.IDToken,
+		AccessToken:  token.AccessToken,
+		RefreshToken: token.RefreshToken,
+		ExpiresIn:    token.ExpiresIn,
+	}, nil
 }

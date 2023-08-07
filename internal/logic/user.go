@@ -12,7 +12,7 @@ import (
 
 type UserLogic interface {
 	CreateAccount(ctx context.Context, account models.User) error
-	Login(ctx context.Context, credentials models.Credentials) (string, error)
+	Login(ctx context.Context, credentials models.Credentials) (models.Token, error)
 }
 
 func NewUserLogic(userService services.UserService, authService services.Authenticator, roleID string) UserLogic {
@@ -55,33 +55,33 @@ func (l *userLogic) CreateAccount(ctx context.Context, account models.User) erro
 	return nil
 }
 
-func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (string, error) {
+func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (models.Token, error) {
 	validate := validator.New()
 	err := validate.Struct(credentials)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to validate request")
-		return "", err
+		return models.Token{}, err
 	}
 
 	user, err := l.userService.GetUser(ctx, credentials.Email)
 	if err != nil {
-		return "", err
+		return models.Token{}, err
 	}
 
 	if !user.EmailVerified {
-		return "", localErrs.ForbiddenErr
+		return models.Token{}, localErrs.ForbiddenErr
 	}
 
 	permissions, err := l.userService.GetRolePermissions(ctx, user.Role)
 	if err != nil {
-		return "", err
+		return models.Token{}, err
 	}
 
 	credentials.Scope = permissions
 
 	token, err := l.authService.SignIn(ctx, credentials)
 	if err != nil {
-		return "", err
+		return models.Token{}, err
 	}
 	return token, nil
 }

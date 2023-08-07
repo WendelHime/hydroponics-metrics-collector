@@ -33,3 +33,14 @@ type Credentials struct {
 	Password string
 	Scope    string
 }
+
+type Token struct {
+	IDToken      string `json:"id_token,omitempty"`
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+	ExpiresIn    int64  `json:"expires_in,omitempty"`
+}
+
+func (Token) Render(w http.ResponseWriter, r *http.Request) error {
+	return nil
+}

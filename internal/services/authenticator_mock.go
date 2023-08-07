@@ -38,10 +38,10 @@ func (m *MockAuthenticator) EXPECT() *MockAuthenticatorMockRecorder {
 }
 
 // SignIn mocks base method.
-func (m *MockAuthenticator) SignIn(arg0 context.Context, arg1 models.Credentials) (string, error) {
+func (m *MockAuthenticator) SignIn(arg0 context.Context, arg1 models.Credentials) (models.Token, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "SignIn", arg0, arg1)
-	ret0, _ := ret[0].(string)
+	ret0, _ := ret[0].(models.Token)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -73,6 +73,26 @@ func NewMockOAuth(ctrl *gomock.Controller) *MockOAuth {
 // EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockOAuth) EXPECT() *MockOAuthMockRecorder {
 	return m.recorder
+}
+
+// LoginWithAuthCodeWithPKCE mocks base method.
+func (m *MockOAuth) LoginWithAuthCodeWithPKCE(arg0 context.Context, arg1 oauth.LoginWithAuthCodeWithPKCERequest, arg2 oauth.IDTokenValidationOptions, arg3 ...authentication.RequestOption) (*oauth.TokenSet, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{arg0, arg1, arg2}
+	for _, a := range arg3 {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "LoginWithAuthCodeWithPKCE", varargs...)
+	ret0, _ := ret[0].(*oauth.TokenSet)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// LoginWithAuthCodeWithPKCE indicates an expected call of LoginWithAuthCodeWithPKCE.
+func (mr *MockOAuthMockRecorder) LoginWithAuthCodeWithPKCE(arg0, arg1, arg2 interface{}, arg3 ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{arg0, arg1, arg2}, arg3...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoginWithAuthCodeWithPKCE", reflect.TypeOf((*MockOAuth)(nil).LoginWithAuthCodeWithPKCE), varargs...)
 }
 
 // LoginWithPassword mocks base method.
