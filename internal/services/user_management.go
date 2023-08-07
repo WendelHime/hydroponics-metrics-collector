@@ -4,6 +4,7 @@ package services
 import (
 	"context"
 	"errors"
+	"strings"
 
 	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
@@ -66,9 +67,6 @@ func (u *userService) CreateAccount(ctx context.Context, account models.User) er
 			if status == 409 {
 				return localErrs.AlreadyExistsErr
 			}
-			if status == 401 {
-				return localErrs.BadRequestErr
-			}
 		}
 		return localErrs.InternalServerErr.WithMsg("failed to create account").WithErr(err)
 	}
@@ -77,7 +75,7 @@ func (u *userService) CreateAccount(ctx context.Context, account models.User) er
 }
 
 func (u *userService) AssignRoleToUser(ctx context.Context, roleID, userID string) error {
-	err := u.roleManager.AssignUsers(ctx, roleID, []*management.User{{Connection: &u.connection, ID: &userID}})
+	err := u.roleManager.AssignUsers(ctx, roleID, []*management.User{{Connection: auth0.String(u.connection), ID: &userID}})
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to assign role to user")
 		return localErrs.InternalServerErr.WithErr(err).WithMsg("failed to assign role to user").WithDetails("roleID", roleID).WithDetails("userID", userID)
@@ -95,14 +93,8 @@ func (u *userService) GetRolePermissions(ctx context.Context, roleID string) (st
 }
 
 func (u *userService) GetUser(ctx context.Context, email string) (models.User, error) {
-	users, err := u.userManager.ListByEmail(ctx, email)
+	users, err := u.userManager.ListByEmail(ctx, strings.ToLower(email))
 	if err != nil {
-		var mngmtErr management.Error
-		if errors.As(err, &mngmtErr) {
-			if mngmtErr.Status() == 404 {
-				return models.User{}, localErrs.NotFoundErr
-			}
-		}
 		log.Warn().Err(err).Msg("failed when retrieving user")
 		return models.User{}, localErrs.InternalServerErr.WithErr(err).WithMsg("failed retrieving users with provided email")
 	}
