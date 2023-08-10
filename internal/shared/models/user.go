@@ -12,8 +12,8 @@ import (
 type User struct {
 	ID            string `json:"-"`
 	Name          string `json:"name" validate:"required"`
-	Email         string `json:"email" validate:"required"`
-	Password      string `json:"password" validate:"required"`
+	Email         string `json:"email" validate:"required,email"`
+	Password      string `json:"password" validate:"required,min=8"`
 	Role          string `json:"-"`
 	EmailVerified bool   `json:"-"`
 }
