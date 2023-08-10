@@ -6,10 +6,11 @@ import (
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/services"
 	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
-	"github.com/go-playground/validator/v10"
-	"github.com/rs/zerolog/log"
 )
 
+// UserLogic contain user correlated logic
+//
+//go:generate mockgen -destination user_mock.go -package logic github.com/WendelHime/hydroponics-metrics-collector/internal/logic UserLogic
 type UserLogic interface {
 	CreateAccount(ctx context.Context, account models.User) error
 	Login(ctx context.Context, credentials models.Credentials) (models.Token, error)
@@ -30,14 +31,7 @@ type userLogic struct {
 }
 
 func (l *userLogic) CreateAccount(ctx context.Context, account models.User) error {
-	validate := validator.New()
-	err := validate.Struct(account)
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to validate request")
-		return err
-	}
-
-	err = l.userService.CreateAccount(ctx, account)
+	err := l.userService.CreateAccount(ctx, account)
 	if err != nil {
 		return err
 	}
@@ -56,13 +50,6 @@ func (l *userLogic) CreateAccount(ctx context.Context, account models.User) erro
 }
 
 func (l *userLogic) Login(ctx context.Context, credentials models.Credentials) (models.Token, error) {
-	validate := validator.New()
-	err := validate.Struct(credentials)
-	if err != nil {
-		log.Warn().Err(err).Msg("failed to validate request")
-		return models.Token{}, err
-	}
-
 	user, err := l.userService.GetUser(ctx, credentials.Email)
 	if err != nil {
 		return models.Token{}, err
