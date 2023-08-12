@@ -1,10 +1,12 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/rs/zerolog/log"
 )
 
 type Error struct {
@@ -43,6 +45,18 @@ func (e *Error) Render(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
+func RenderErr(w http.ResponseWriter, r *http.Request, err error) {
+	var apiErr *Error
+	if errors.As(err, &apiErr) {
+		log.Warn().Err(err).Msg("request failed")
+		render.Render(w, r, apiErr)
+		return
+	}
+
+	log.Warn().Err(err).Msg("internal server error")
+	render.Status(r, http.StatusInternalServerError)
+}
+
 // InternalServerErr used for random/unexpected internal errors
 var InternalServerErr *Error = newError(500, "internal server error")
 
@@ -57,3 +71,6 @@ var BadRequestErr *Error = newError(400, "bad request")
 
 // ForbiddenErr used when the user is inactive or doesn't the expected permissions
 var ForbiddenErr *Error = newError(403, "forbidden")
+
+// UnauthorizedErr used when the provided token is invalid
+var UnauthorizedErr *Error = newError(401, "unauthorized")
