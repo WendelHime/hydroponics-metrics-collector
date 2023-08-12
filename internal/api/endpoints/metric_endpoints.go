@@ -1,4 +1,4 @@
-package api
+package endpoints
 
 import (
 	"net/http"
@@ -7,6 +7,7 @@ import (
 	"github.com/rs/zerolog/log"
 
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 )
 
@@ -23,14 +24,14 @@ func (e MetricsEndpoints) RegisterMetric(w http.ResponseWriter, r *http.Request)
 	err := render.Bind(r, &sensorRequest)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to decode sensor request")
-		renderErr(w, r, err)
+		errors.RenderErr(w, r, err)
 		return
 	}
 
 	err = e.logic.WriteSensorMetrics(r.Context(), sensorRequest)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to write sensor metrics")
-		renderErr(w, r, err)
+		errors.RenderErr(w, r, err)
 		return
 	}
 

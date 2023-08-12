@@ -1,4 +1,4 @@
-package api
+package endpoints
 
 import (
 	"encoding/base64"
@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 	"github.com/go-chi/render"
 	"github.com/rs/zerolog/log"
@@ -25,13 +26,13 @@ func (e UserEndpoints) CreateAccount(w http.ResponseWriter, r *http.Request) {
 	err := render.Bind(r, &account)
 	if err != nil {
 		log.Warn().Err(err).Msg("failed to decode account")
-		renderErr(w, r, err)
+		errors.RenderErr(w, r, err)
 		return
 	}
 
 	err = e.logic.CreateAccount(r.Context(), account)
 	if err != nil {
-		renderErr(w, r, err)
+		errors.RenderErr(w, r, err)
 		return
 	}
 
@@ -64,7 +65,7 @@ func (e UserEndpoints) SignIn(w http.ResponseWriter, r *http.Request) {
 	credentials := models.Credentials{Email: userPass[0], Password: userPass[1]}
 	token, err := e.logic.Login(r.Context(), credentials)
 	if err != nil {
-		renderErr(w, r, err)
+		errors.RenderErr(w, r, err)
 		return
 	}
 
