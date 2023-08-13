@@ -14,7 +14,7 @@ func NewRouter(logger zerolog.Logger, metricsEndpoints endpoints.MetricsEndpoint
 	mux.Use(httplog.RequestLogger(logger))
 	mux.Use(render.SetContentType(render.ContentTypeJSON))
 
-	// private endpoints for metrics
+	// private endpoints for iot device
 	mux.Group(func(r chi.Router) {
 		r.Use(middlewares.EnsureValidToken)
 		r.Use(middlewares.HasScope("write:metrics"))
