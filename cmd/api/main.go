@@ -14,6 +14,7 @@ import (
 
 	"github.com/InfluxCommunity/influxdb3-go/influx"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/api"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/api/endpoints"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/logic"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/services"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
@@ -28,6 +29,7 @@ func main() {
 	auth0ClientID := os.Getenv("AUTH0_CLIENTID")
 	auth0ClientSecret := os.Getenv("AUTH0_CLIENT_SECRET")
 	authAudience := os.Getenv("AUTH_AUDIENCE")
+	authNonce := os.Getenv("AUTH0_NONCE")
 	env := os.Getenv("ENV")
 	roleID := os.Getenv("USER_ROLE_ID")
 
@@ -50,7 +52,7 @@ func main() {
 	metricsRepository := storage.NewRepository(database, influxCli)
 	logger.Debug().Str("database", database).Str("hostURL", hostURL).Str("authToken", authToken).Msg("Creating repository with the environment variables")
 	metricsLogic := logic.NewLogic(metricsRepository)
-	metricsEndpoints := api.NewMetricsEndpoints(metricsLogic)
+	metricsEndpoints := endpoints.NewMetricsEndpoints(metricsLogic)
 
 	ctx := context.Background()
 	authCli, err := authentication.New(
@@ -67,11 +69,11 @@ func main() {
 		panic(errors.InternalServerErr.WithMsg("failed to create auth0 management client").WithDetails("err", err.Error()).Error())
 	}
 
-	authService := services.NewAuthService(authCli.OAuth, env, authAudience)
+	authService := services.NewAuthService(authCli.OAuth, env, authAudience, authNonce)
 	userService := services.NewUserService(managementCli.User, managementCli.Role)
 
 	userLogic := logic.NewUserLogic(userService, authService, roleID)
-	userEndpoints := api.NewUserEndpoint(userLogic)
+	userEndpoints := endpoints.NewUserEndpoint(userLogic)
 	r := api.NewRouter(logger, metricsEndpoints, userEndpoints)
 
 	server := &http.Server{Addr: "0.0.0.0:8080", Handler: r}

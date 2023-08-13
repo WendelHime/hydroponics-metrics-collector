@@ -8,6 +8,7 @@ import (
 	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
 	"github.com/auth0/go-auth0/authentication/oauth"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	gomock "go.uber.org/mock/gomock"
 )
@@ -64,6 +65,7 @@ func TestSignIn(t *testing.T) {
 				oAuth := NewMockOAuth(ctrl)
 				audience := "test"
 				environment := "local"
+				nonce := uuid.NewString()
 
 				oAuth.EXPECT().LoginWithPassword(
 					gomock.Any(),
@@ -76,7 +78,7 @@ func TestSignIn(t *testing.T) {
 					},
 					gomock.Any(),
 				).Return(&oauth.TokenSet{AccessToken: "random token"}, nil)
-				return NewAuthService(oAuth, environment, audience)
+				return NewAuthService(oAuth, environment, audience, nonce)
 			},
 			givenCredentials: basicCredentials,
 		},
@@ -91,6 +93,7 @@ func TestSignIn(t *testing.T) {
 				oAuth := NewMockOAuth(ctrl)
 				audience := "test"
 				environment := "local"
+				nonce := uuid.NewString()
 
 				oAuth.EXPECT().LoginWithPassword(
 					gomock.Any(),
@@ -103,7 +106,7 @@ func TestSignIn(t *testing.T) {
 					},
 					gomock.Any(),
 				).Return(nil, badRequestErr)
-				return NewAuthService(oAuth, environment, audience)
+				return NewAuthService(oAuth, environment, audience, nonce)
 			},
 			givenCredentials: emptyCredentials,
 		},
@@ -118,6 +121,7 @@ func TestSignIn(t *testing.T) {
 				oAuth := NewMockOAuth(ctrl)
 				audience := "test"
 				environment := "local"
+				nonce := uuid.NewString()
 
 				oAuth.EXPECT().LoginWithPassword(
 					gomock.Any(),
@@ -130,7 +134,7 @@ func TestSignIn(t *testing.T) {
 					},
 					gomock.Any(),
 				).Return(nil, forbiddenRequestErr)
-				return NewAuthService(oAuth, environment, audience)
+				return NewAuthService(oAuth, environment, audience, nonce)
 			},
 			givenCredentials: emptyCredentials,
 		},
@@ -145,6 +149,7 @@ func TestSignIn(t *testing.T) {
 				oAuth := NewMockOAuth(ctrl)
 				audience := "test"
 				environment := "local"
+				nonce := uuid.NewString()
 
 				oAuth.EXPECT().LoginWithPassword(
 					gomock.Any(),
@@ -157,7 +162,7 @@ func TestSignIn(t *testing.T) {
 					},
 					gomock.Any(),
 				).Return(nil, errors.New("random error"))
-				return NewAuthService(oAuth, environment, audience)
+				return NewAuthService(oAuth, environment, audience, nonce)
 			},
 			givenCredentials: emptyCredentials,
 		},

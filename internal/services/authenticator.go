@@ -10,7 +10,6 @@ import (
 	"github.com/auth0/go-auth0/authentication"
 	"github.com/auth0/go-auth0/authentication/oauth"
 	"github.com/auth0/go-auth0/management"
-	"github.com/google/uuid"
 )
 
 // Authenticator holds functions for authentication methods
@@ -31,10 +30,11 @@ type authService struct {
 	environment string
 	connection  string
 	audience    string
+	nonce       string
 }
 
 // NewAuthService builds an authenticator service
-func NewAuthService(oauth OAuth, env, audience string) Authenticator {
+func NewAuthService(oauth OAuth, env, audience, nonce string) Authenticator {
 	return &authService{
 		oauth:       oauth,
 		environment: env,
@@ -52,7 +52,7 @@ func (u *authService) SignIn(ctx context.Context, credentials models.Credentials
 		Realm:    u.environment,
 	}, oauth.IDTokenValidationOptions{
 		MaxAge: 10 * time.Minute,
-		Nonce:  uuid.NewString(),
+		Nonce:  u.nonce,
 	})
 	if err != nil {
 		var mngmtErr management.Error
