@@ -15,6 +15,9 @@ type UserDevices struct {
 	Devices []string `firestore:"devices,omitempty"`
 }
 
+// UserDeviceRepository contain functions for storing and retrieving user devices
+//
+//go:generate mockgen -destination user_devices_mock.go -package storage github.com/WendelHime/hydroponics-metrics-collector/internal/storage UserDeviceRepository
 type UserDeviceRepository interface {
 	GetDevicesFromUser(ctx context.Context, userID string) ([]string, error)
 	AddDeviceToUser(ctx context.Context, userID, newDevice string, currentDevices []string) error
