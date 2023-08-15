@@ -12,6 +12,7 @@ import (
 	jwtmiddleware "github.com/auth0/go-jwt-middleware/v2"
 	"github.com/auth0/go-jwt-middleware/v2/jwks"
 	"github.com/auth0/go-jwt-middleware/v2/validator"
+	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog/log"
 )
 
@@ -59,7 +60,8 @@ func EnsureValidToken(next http.Handler) http.Handler {
 
 // CustomClaims contains custom data we want from the token.
 type CustomClaims struct {
-	Scope string `json:"scope"`
+	Issuer string `json:"iss"`
+	Scope  string `json:"scope"`
 }
 
 // Validate does nothing for this example, but we need
@@ -84,12 +86,26 @@ func HasScope(scopes string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
-
 			claims := token.CustomClaims.(*CustomClaims)
 			if !claims.HasScope(scopes) {
 				errors.RenderErr(w, r, errors.ForbiddenErr)
 				return
 			}
+			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func UserMatches(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userID := chi.URLParam(r, "userID")
+
+		token := r.Context().Value(jwtmiddleware.ContextKey{}).(*validator.ValidatedClaims)
+		claims := token.CustomClaims.(*CustomClaims)
+		if claims.Issuer != userID {
+			errors.RenderErr(w, r, errors.ForbiddenErr)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
