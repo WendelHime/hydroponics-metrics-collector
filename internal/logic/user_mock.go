@@ -35,6 +35,20 @@ func (m *MockUserLogic) EXPECT() *MockUserLogicMockRecorder {
 	return m.recorder
 }
 
+// AddDevice mocks base method.
+func (m *MockUserLogic) AddDevice(arg0 context.Context, arg1, arg2 string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddDevice", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// AddDevice indicates an expected call of AddDevice.
+func (mr *MockUserLogicMockRecorder) AddDevice(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddDevice", reflect.TypeOf((*MockUserLogic)(nil).AddDevice), arg0, arg1, arg2)
+}
+
 // CreateAccount mocks base method.
 func (m *MockUserLogic) CreateAccount(arg0 context.Context, arg1 models.User) error {
 	m.ctrl.T.Helper()

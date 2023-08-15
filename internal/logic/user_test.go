@@ -8,6 +8,7 @@ import (
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/services"
 	localErrs "github.com/WendelHime/hydroponics-metrics-collector/internal/shared/errors"
 	"github.com/WendelHime/hydroponics-metrics-collector/internal/shared/models"
+	"github.com/WendelHime/hydroponics-metrics-collector/internal/storage"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	gomock "go.uber.org/mock/gomock"
@@ -42,7 +43,7 @@ func TestCreateAccount(t *testing.T) {
 				userService.EXPECT().GetUser(gomock.Any(), baseAccount.Email).Return(baseAccountWithID, nil).Times(1)
 				userService.EXPECT().AssignRoleToUser(gomock.Any(), roleID, baseAccountWithID.ID).Return(nil).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenAccount: baseAccount,
 			assert: func(t *testing.T, err error) {
@@ -56,7 +57,7 @@ func TestCreateAccount(t *testing.T) {
 				userService := services.NewMockUserService(ctrl)
 				userService.EXPECT().CreateAccount(gomock.Any(), baseAccount).Return(errors.New("random error")).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenAccount: baseAccount,
 			assert: func(t *testing.T, err error) {
@@ -71,7 +72,7 @@ func TestCreateAccount(t *testing.T) {
 				userService.EXPECT().CreateAccount(gomock.Any(), baseAccount).Return(nil).Times(1)
 				userService.EXPECT().GetUser(gomock.Any(), baseAccount.Email).Return(baseAccountWithID, errors.New("random error")).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenAccount: baseAccount,
 			assert: func(t *testing.T, err error) {
@@ -87,7 +88,7 @@ func TestCreateAccount(t *testing.T) {
 				userService.EXPECT().GetUser(gomock.Any(), baseAccount.Email).Return(baseAccountWithID, nil).Times(1)
 				userService.EXPECT().AssignRoleToUser(gomock.Any(), roleID, baseAccountWithID.ID).Return(errors.New("random error")).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenAccount: baseAccount,
 			assert: func(t *testing.T, err error) {
@@ -147,7 +148,7 @@ func TestLogin(t *testing.T) {
 				userService.EXPECT().GetRolePermissions(gomock.Any(), baseAccount.Role).Return(scope, nil).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
 				authService.EXPECT().SignIn(gomock.Any(), credentialsWithScope).Return(baseToken, nil).Times(1)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenCredentials: basicCredentials,
 			assert: func(t *testing.T, token models.Token, err error) {
@@ -162,7 +163,7 @@ func TestLogin(t *testing.T) {
 				userService := services.NewMockUserService(ctrl)
 				userService.EXPECT().GetUser(gomock.Any(), basicCredentials.Email).Return(accountWithoutEmailVerified, nil).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenCredentials: basicCredentials,
 			assert: func(t *testing.T, token models.Token, err error) {
@@ -178,7 +179,7 @@ func TestLogin(t *testing.T) {
 				userService := services.NewMockUserService(ctrl)
 				userService.EXPECT().GetUser(gomock.Any(), basicCredentials.Email).Return(baseAccount, errors.New("random error")).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenCredentials: basicCredentials,
 			assert: func(t *testing.T, token models.Token, err error) {
@@ -194,7 +195,7 @@ func TestLogin(t *testing.T) {
 				userService.EXPECT().GetUser(gomock.Any(), basicCredentials.Email).Return(baseAccount, nil).Times(1)
 				userService.EXPECT().GetRolePermissions(gomock.Any(), baseAccount.Role).Return("", errors.New("random error")).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenCredentials: basicCredentials,
 			assert: func(t *testing.T, token models.Token, err error) {
@@ -211,7 +212,7 @@ func TestLogin(t *testing.T) {
 				userService.EXPECT().GetRolePermissions(gomock.Any(), baseAccount.Role).Return(scope, nil).Times(1)
 				authService := services.NewMockAuthenticator(ctrl)
 				authService.EXPECT().SignIn(gomock.Any(), credentialsWithScope).Return(models.Token{}, errors.New("random error")).Times(1)
-				return NewUserLogic(userService, authService, roleID)
+				return NewUserLogic(userService, authService, nil, roleID)
 			},
 			givenCredentials: basicCredentials,
 			assert: func(t *testing.T, token models.Token, err error) {
@@ -229,6 +230,135 @@ func TestLogin(t *testing.T) {
 			logic := tt.setup(ctrl)
 			token, err := logic.Login(context.Background(), tt.givenCredentials)
 			tt.assert(t, token, err)
+		})
+	}
+}
+
+func TestAddDevice(t *testing.T) {
+	userID := uuid.NewString()
+	deviceID := uuid.NewString()
+	var tests = []struct {
+		name        string
+		setup       func(ctrl *gomock.Controller) UserLogic
+		givenUserID string
+		givenDevice string
+		assert      func(t *testing.T, err error)
+	}{
+		{
+			name: "failed to retrieve user devices",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return(make([]string, 0), errors.New("random error"))
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			givenDevice: deviceID,
+			assert: func(t *testing.T, err error) {
+				assert.NotNil(t, err)
+			},
+		},
+		{
+			name: "add new user device with success",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return(make([]string, 0), localErrs.NotFoundErr)
+				repository.EXPECT().CreateUserDevice(gomock.Any(), userID, deviceID).Return(nil)
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			givenDevice: deviceID,
+			assert: func(t *testing.T, err error) {
+				assert.Nil(t, err)
+			},
+		},
+		{
+			name: "failed to add new user device",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return(make([]string, 0), localErrs.NotFoundErr)
+				repository.EXPECT().CreateUserDevice(gomock.Any(), userID, deviceID).Return(errors.New("random error"))
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			givenDevice: deviceID,
+			assert: func(t *testing.T, err error) {
+				assert.NotNil(t, err)
+			},
+		},
+		{
+			name: "append new user device with success",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				oldDevices := []string{"old_device"}
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return(oldDevices, nil)
+				repository.EXPECT().AddDeviceToUser(gomock.Any(), userID, deviceID, oldDevices).Return(nil)
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			givenDevice: deviceID,
+			assert: func(t *testing.T, err error) {
+				assert.Nil(t, err)
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			logic := tt.setup(ctrl)
+			err := logic.AddDevice(context.Background(), tt.givenUserID, tt.givenDevice)
+			tt.assert(t, err)
+		})
+	}
+}
+
+func TestGetDevices(t *testing.T) {
+	userID := uuid.NewString()
+	var tests = []struct {
+		name        string
+		setup       func(ctrl *gomock.Controller) UserLogic
+		givenUserID string
+		assert      func(t *testing.T, devices []string, err error)
+	}{
+		{
+			name: "get devices with success",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				oldDevices := []string{"old_device"}
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return(oldDevices, nil)
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			assert: func(t *testing.T, devices []string, err error) {
+				assert.Len(t, devices, 1)
+				assert.Nil(t, err)
+			},
+		},
+		{
+			name: "failed to retrieve devices",
+			setup: func(ctrl *gomock.Controller) UserLogic {
+				repository := storage.NewMockUserDeviceRepository(ctrl)
+				repository.EXPECT().GetDevicesFromUser(gomock.Any(), userID).Return([]string{}, errors.New("random error"))
+				return NewUserLogic(nil, nil, repository, "")
+			},
+			givenUserID: userID,
+			assert: func(t *testing.T, devices []string, err error) {
+				assert.Len(t, devices, 0)
+				assert.NotNil(t, err)
+			},
+		},
+	}
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			logic := tt.setup(ctrl)
+			devices, err := logic.GetDevices(context.Background(), tt.givenUserID)
+			tt.assert(t, devices, err)
 		})
 	}
 }
