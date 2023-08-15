@@ -53,7 +53,7 @@ func (u *userDeviceRepository) AddDeviceToUser(ctx context.Context, userID strin
 	})
 
 	if err != nil {
-		return err
+		return localErrs.InternalServerErr.WithMsg("failed to add user device").WithErr(err)
 	}
 
 	return nil
@@ -63,7 +63,7 @@ func (u *userDeviceRepository) CreateUserDevice(ctx context.Context, userID stri
 	userDevice := UserDevices{UserID: userID, Devices: []string{newDevice}}
 	_, err := u.client.Collection("user_devices").Doc(userID).Set(ctx, userDevice)
 	if err != nil {
-		return err
+		return localErrs.InternalServerErr.WithMsg("failed to create user device").WithErr(err)
 	}
 
 	return nil
