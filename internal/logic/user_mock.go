@@ -63,6 +63,21 @@ func (mr *MockUserLogicMockRecorder) CreateAccount(arg0, arg1 interface{}) *gomo
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateAccount", reflect.TypeOf((*MockUserLogic)(nil).CreateAccount), arg0, arg1)
 }
 
+// GetDevices mocks base method.
+func (m *MockUserLogic) GetDevices(arg0 context.Context, arg1 string) ([]string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetDevices", arg0, arg1)
+	ret0, _ := ret[0].([]string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetDevices indicates an expected call of GetDevices.
+func (mr *MockUserLogicMockRecorder) GetDevices(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDevices", reflect.TypeOf((*MockUserLogic)(nil).GetDevices), arg0, arg1)
+}
+
 // Login mocks base method.
 func (m *MockUserLogic) Login(arg0 context.Context, arg1 models.Credentials) (models.Token, error) {
 	m.ctrl.T.Helper()
