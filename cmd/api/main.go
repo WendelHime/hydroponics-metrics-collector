@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"cloud.google.com/go/firestore"
 	"github.com/auth0/go-auth0/authentication"
 	"github.com/auth0/go-auth0/management"
 	"github.com/go-chi/httplog"
@@ -32,7 +33,9 @@ func main() {
 	authNonce := os.Getenv("AUTH0_NONCE")
 	env := os.Getenv("ENV")
 	roleID := os.Getenv("USER_ROLE_ID")
+	projectID := os.Getenv("PROJECT_ID")
 
+	ctx := context.Background()
 	logger := httplog.NewLogger("hydroponics-metrics-collector", httplog.Options{
 		LogLevel:        "info",
 		LevelFieldName:  "level",
@@ -50,11 +53,16 @@ func main() {
 	}
 
 	metricsRepository := storage.NewRepository(database, influxCli)
+	firestoreCli, err := firestore.NewClient(ctx, projectID)
+	if err != nil {
+		panic(errors.InternalServerErr.WithMsg("failed to create firestore client").WithErr(err).Error())
+	}
+
+	userDeviceRepository := storage.NewUserDeviceRepository(firestoreCli)
 	logger.Debug().Str("database", database).Str("hostURL", hostURL).Str("authToken", authToken).Msg("Creating repository with the environment variables")
-	metricsLogic := logic.NewLogic(metricsRepository)
+	metricsLogic := logic.NewMetricLogic(metricsRepository, userDeviceRepository)
 	metricsEndpoints := endpoints.NewMetricsEndpoints(metricsLogic)
 
-	ctx := context.Background()
 	authCli, err := authentication.New(
 		ctx,
 		auth0Domain,
@@ -72,9 +80,9 @@ func main() {
 	authService := services.NewAuthService(authCli.OAuth, env, authAudience, authNonce)
 	userService := services.NewUserService(managementCli.User, managementCli.Role)
 
-	userLogic := logic.NewUserLogic(userService, authService, roleID)
+	userLogic := logic.NewUserLogic(userService, authService, userDeviceRepository, roleID)
 	userEndpoints := endpoints.NewUserEndpoint(userLogic)
-	r := api.NewRouter(logger, metricsEndpoints, userEndpoints)
+	r := api.NewRouter(logger, metricsEndpoints, userEndpoints, authNonce)
 
 	server := &http.Server{Addr: "0.0.0.0:8080", Handler: r}
 
