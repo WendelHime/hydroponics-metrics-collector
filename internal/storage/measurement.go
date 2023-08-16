@@ -35,7 +35,7 @@ type repository struct {
 
 // InfluxClient represents functions from influxdb client used by the storage layer
 //
-//go:generate mockgen -destination measurement_mock.go -package storage github.com/WendelHime/hydroponics-metrics-collector/internal/storage InfluxClient
+//go:generate mockgen -destination measurement_mock.go -package storage github.com/WendelHime/hydroponics-metrics-collector/internal/storage InfluxClient,MetricRepository
 type InfluxClient interface {
 	WriteData(ctx context.Context, database string, points ...any) error
 }
